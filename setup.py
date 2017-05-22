@@ -1,7 +1,9 @@
-from setuptools import setup, Extension
 import glob
 import platform
 import os
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
 
 #Does gcc compile with this header and library?
 def compile_test(header, library):
@@ -18,7 +20,7 @@ if platform.system() != 'Darwin':
     LIBS.append('rt')
 
 #We don't need -std=c++11 but python seems to be compiled with it now.  https://github.com/kpu/kenlm/issues/86
-ARGS = ['-O3', '-DNDEBUG', '-DKENLM_MAX_ORDER=6', '-std=c++11']
+ARGS = ['-O3', '-DNDEBUG', '-DKENLM_MAX_ORDER=12', '-std=c++11']
 
 if compile_test('zlib.h', 'z'):
     ARGS.append('-DHAVE_ZLIB')
@@ -32,17 +34,18 @@ if compile_test('lzma.h', 'lzma'):
     ARGS.append('-DHAVE_XZLIB')
     LIBS.append('lzma')
 
-ext_modules = [
-    Extension(name='kenlm',
-        sources=FILES + ['python/kenlm.cpp'],
-        language='C++', 
+extensions = [
+    Extension('kenlm',
+        ['python/kenlm.pyx']+FILES,
+        language='C++',
         include_dirs=['.'],
-        libraries=LIBS, 
+        libraries=LIBS,
         extra_compile_args=ARGS)
 ]
 
 setup(
     name='kenlm',
-    ext_modules=ext_modules,
-    include_package_data=True,
+    version='0.1.0',
+    ext_modules=cythonize(extensions),
+    include_package_data=True
 )

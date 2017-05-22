@@ -1,3 +1,5 @@
+# distutils: language = c++
+
 import os
 cimport _kenlm
 
@@ -28,7 +30,7 @@ cdef class FullScoreReturn:
 
     def __repr__(self):
         return '{0}({1}, {2}, {3})'.format(self.__class__.__name__, repr(self.log_prob), repr(self.ngram_length), repr(self.oov))
-    
+
     property log_prob:
         def __get__(self):
             return self.log_prob
@@ -46,7 +48,7 @@ cdef class State:
     Wrapper around lm::ngram::State so that python code can make incremental queries.
 
     Notes:
-        * rich comparisons 
+        * rich comparisons
         * hashable
     """
 
@@ -76,6 +78,14 @@ class LoadMethod:
     POPULATE_OR_READ = _kenlm.POPULATE_OR_READ
     READ = _kenlm.READ
     PARALLEL_READ = _kenlm.PARALLEL_READ
+
+class ModelType:
+    PROBING = _kenlm.PROBING
+    REST_PROBING = _kenlm.REST_PROBING
+    TRIE = _kenlm.TRIE
+    QUANT_TRIE = _kenlm.QUANT_TRIE
+    ARRAY_TRIE = _kenlm.ARRAY_TRIE
+    QUANT_ARRAY_TRIE = _kenlm.QUANT_ARRAY_TRIE
 
 cdef class Config:
     """
@@ -111,7 +121,7 @@ cdef class Model:
         """
         self.path = os.path.abspath(as_str(path))
         try:
-            self.model = _kenlm.LoadVirtual(self.path, config._c_config)
+            self.model = _kenlm.LoadVirtual(self.path, config._c_config, ModelType.PROBING)
         except RuntimeError as exception:
             exception_message = str(exception).replace('\n', ' ')
             raise IOError('Cannot read model \'{}\' ({})'.format(path, exception_message))\
@@ -128,7 +138,7 @@ cdef class Model:
     def score(self, sentence, bos = True, eos = True):
         """
         Return the log10 probability of a string.  By default, the string is
-        treated as a sentence.  
+        treated as a sentence.
           return log10 p(sentence </s> | <s>)
 
         If you do not want to condition on the beginning of sentence, pass
@@ -186,7 +196,7 @@ cdef class Model:
         """
         words = len(as_str(sentence).split()) + 1 # For </s>
         return 10.0**(-self.score(sentence) / words)
-    
+
     def full_scores(self, sentence, bos = True, eos = True):
         """
         full_scores(sentence, bos = True, eos = Ture) -> generate full scores (prob, ngram length, oov)
@@ -234,7 +244,7 @@ cdef class Model:
         """
         cdef float total = self.model.BaseScore(&in_state._c_state, self.vocab.Index(as_str(word)), &out_state._c_state)
         return total
-    
+
     def BaseFullScore(self, State in_state, str word, State out_state):
         """
         Wrapper around model.BaseScore(in_state, Index(word), out_state)
@@ -246,7 +256,7 @@ cdef class Model:
         cdef _kenlm.WordIndex wid = self.vocab.Index(as_str(word))
         cdef _kenlm.FullScoreReturn ret = self.model.BaseFullScore(&in_state._c_state, wid, &out_state._c_state)
         return FullScoreReturn(ret.prob, ret.ngram_length, wid == 0)
-    
+
     def __contains__(self, word):
         cdef bytes w = as_str(word)
         return (self.vocab.Index(w) != 0)

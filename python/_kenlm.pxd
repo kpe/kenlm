@@ -10,12 +10,12 @@ cdef extern from "lm/state.hh" namespace "lm::ngram":
     cdef cppclass State :
         int Compare(const State &other) const
 
-    int hash_value(const State &state) 
+    int hash_value(const State &state)
 
 cdef extern from "lm/virtual_interface.hh" namespace "lm::base":
     cdef cppclass Vocabulary:
         WordIndex Index(char*)
-        WordIndex BeginSentence() 
+        WordIndex BeginSentence()
         WordIndex EndSentence()
         WordIndex NotFound()
 
@@ -37,6 +37,15 @@ cdef extern from "util/mmap.hh" namespace "util":
         READ
         PARALLEL_READ
 
+cdef extern from "lm/model_type.hh" namespace "lm::ngram":
+    ctypedef enum ModelType:
+        PROBING
+        REST_PROBING
+        TRIE
+        QUANT_TRIE
+        ARRAY_TRIE
+        QUANT_ARRAY_TRIE
+
 cdef extern from "lm/config.hh" namespace "lm::ngram":
     cdef cppclass Config:
         Config()
@@ -44,7 +53,6 @@ cdef extern from "lm/config.hh" namespace "lm::ngram":
         LoadMethod load_method
 
 cdef extern from "lm/model.hh" namespace "lm::ngram":
-    cdef Model *LoadVirtual(char *, Config &config) except +
+    cdef Model *LoadVirtual(char *, Config &config, ModelType if_arpa) except +
     #default constructor
     cdef Model *LoadVirtual(char *) except +
-
